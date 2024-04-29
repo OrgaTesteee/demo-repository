@@ -3,7 +3,7 @@ name: Automatic Pull Request
 on:
   push:
     branches:
-      - "*"
+      - '*'
 
 jobs:
   create_pull_request:
@@ -17,12 +17,29 @@ jobs:
           else
             echo "::set-output name=is_first_commit::false"
           fi
-
+        shell: bash
+          
       - name: Create Pull Request
         if: ${{ steps.first_commit.outputs.is_first_commit == 'true' }}
-        uses: peter-evans/create-pull-request@v3
+        uses: actions/github-script@v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: dev
-          title: "Automatically generated pull request"
-          body: "This pull request was automatically generated when pushing a new branch."
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { data: branches } = await github.git.listMatchingRefs({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: 'heads/dev'
+            });
+            const branchExists = branches.length > 0;
+            if (branchExists) {
+              await github.pulls.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: 'Automatically generated pull request',
+                head: context.ref,
+                base: 'dev',
+                body: 'This pull request was automatically generated when pushing a new branch.'
+              });
+            } else {
+              console.log('Branch "dev" does not exist.');
+            }
