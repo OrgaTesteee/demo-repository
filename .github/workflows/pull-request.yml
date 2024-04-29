@@ -1,0 +1,28 @@
+name: Automatic Pull Request
+
+on:
+  push:
+    branches:
+      - "*"
+
+jobs:
+  create_pull_request:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if it's the first commit
+        id: first_commit
+        run: |
+          if [[ $(git log --pretty=format:%H --no-merges | wc -l) -eq 1 ]]; then
+            echo "::set-output name=is_first_commit::true"
+          else
+            echo "::set-output name=is_first_commit::false"
+          fi
+
+      - name: Create Pull Request
+        if: ${{ steps.first_commit.outputs.is_first_commit == 'true' }}
+        uses: peter-evans/create-pull-request@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: dev
+          title: "Automatically generated pull request"
+          body: "This pull request was automatically generated when pushing a new branch."
